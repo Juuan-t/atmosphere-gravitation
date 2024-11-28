@@ -4,11 +4,11 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
 
 # constants
-steps = 10000
+steps = 1000
 dt = 0.01
 time_max = dt * steps
 
-G = 1.0
+G = 10.0
 
 #objects
 class thing():
@@ -23,11 +23,11 @@ class thing():
         self.acceleration[0] = startingAcceleration
 
 planet = thing(mass = 10, radius = 10, startingVelocity = np.array([0, 0]), startingPosition = np.array([0, 0]), startingAcceleration = np.array([0, 0]))
-obj = thing(mass = 1, radius = 1, startingVelocity = np.array([0, -20]), startingPosition = np.array([20, 0]), startingAcceleration = np.array([0, 1]))
+obj = thing(mass = 1, radius = 1, startingVelocity = np.array([0, 10]), startingPosition = np.array([20, 0]), startingAcceleration = np.array([1, 1]))
 
 for i in range(1, steps):
     pos = obj.position[i-1] + obj.velocity[i-1] * dt + 0.5 * obj.acceleration[i-1] * pow(dt, 2)
-    force = G * (obj.mass * planet.mass) / np.sqrt(pow(pos[0], 2) + pow(pos[1], 2))
+    force = -G * (obj.mass * planet.mass) / np.sqrt(pow(pos[0], 2) + pow(pos[1], 2))
     accel = force / obj.mass
     velocity = obj.velocity[i - 1] + dt * 0.5 * (accel + obj.acceleration[i - 1])
 
