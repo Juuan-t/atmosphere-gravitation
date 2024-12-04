@@ -8,12 +8,14 @@ steps = 500
 dt = 0.1
 time_max = dt * steps
 zeroVector = np.array([0, 0])
-
 G = 6.674e-11
+tempChangeGradient = 0.0065 #0.01 #kelvin / meter
+molarMass = 0.029 #molar mass of air
+gasConstant = 8.314
 
 #objects
 class thing():
-    def __init__(self, mass, radius, startingVelocity, startingPosition, startingAcceleration):
+    def __init__(self, mass, radius, startingVelocity = zeroVector, startingPosition = zeroVector, startingAcceleration = zeroVector, cwValue = 1, frontalArea = 1):
         self.mass = mass
         self.radius = radius
         self.velocity = np.empty((steps, 2))
@@ -22,21 +24,64 @@ class thing():
         self.velocity[0] = startingVelocity
         self.position[0] = startingPosition
         self.acceleration[0] = startingAcceleration
+        self.cwValue = cwValue
+        self.frontalArea = frontalArea
 
-planet = thing(mass = 5.9722e24, radius = 6378000, startingVelocity = zeroVector, startingPosition = zeroVector, startingAcceleration = zeroVector)
+#functions
+def calcForce(objMass, objPos, planetMass, planetRadius):
+    radius = np.sqrt(pow(objPos[0], 2) + pow(objPos[1], 2))
+    force = -G * objMass * planetMass * objPos / pow(radius, 3)
 
-mass = 1000
-startpos = np.array([6400000, 0])
-radius = np.sqrt(pow(startpos[0], 2) + pow(startpos[1], 2))
-force = -G * mass * planet.mass * startpos / pow(radius, 3)
-startaccel = force / mass
+    return force
 
-obj = thing(mass = mass, radius = 1, startingVelocity = np.array([-760, 7600]), startingPosition = startpos, startingAcceleration = startaccel)
+def calcForceWithDrag(forceWithoutDrag, objVelocity, objCwValue, objFrontalArea, objPos, planetRadius):
+    radius = np.sqrt(pow(objPos[0], 2) + pow(objPos[1], 2))
+    distance = radius - planetRadius
+    if(distance < 0 ):
+        distance = 0
+    
+    airPressure = 101325 * pow(1 - (tempChangeGradient * distance) / 288.15, (9.81 * molarMass) / (gasConstant * tempChangeGradient))#barometric formula
+    temperature = 288.15 - distance * tempChangeGradient
+    airDensity = (airPressure * molarMass) / (gasConstant * temperature)
+    drag_x = 0.5 * airDensity * pow(objVelocity[0], 2) * objCwValue * objFrontalArea
+    drag_y = 0.5 * airDensity * pow(objVelocity[1], 2) * objCwValue * objFrontalArea
 
+    force_x = forceWithoutDrag[0] - drag_x
+    force_y = forceWithoutDrag[1] - drag_y
+
+    forceWithDrag = np.array([force_x, force_y])
+    
+    return forceWithDrag
+
+#initialisation
+planetMass = 5.9722e24
+planetRadius = 6378000
+
+planet = thing(mass = planetMass, radius = planetRadius)
+
+objMass = 1000
+objStartVel = np.array([-760, 7600])
+objStartpos = np.array([6400000, 0])
+objCwValue = 0.8
+objFrontalArea = 3
+
+objForce = calcForce(objMass, objStartpos, planet.mass, planet.radius)
+objStartaccel = objForce / objMass
+
+objForce = calcForceWithDrag(objForce, objStartVel, objCwValue, objFrontalArea, objStartpos, planet.radius)
+objStartaccel = objForce / objMass
+
+obj = thing(mass = objMass, radius = 1, startingVelocity = objStartVel, startingPosition = objStartpos, startingAcceleration = objStartaccel, cwValue = objCwValue, frontalArea = objFrontalArea)
+
+
+#loops for calculating data
 for i in range(1, steps):
     pos = obj.position[i-1] + obj.velocity[i-1] * dt + 0.5 * obj.acceleration[i-1] * pow(dt, 2)
     radius = np.sqrt(pow(pos[0], 2) + pow(pos[1], 2))
-    force = -G * obj.mass * planet.mass * pos / pow(radius, 3)
+    force = calcForce(obj.mass, pos, planet.mass, planet.radius)
+    accel = force / obj.mass
+    velocity = obj.velocity[i - 1] + dt * 0.5 * (accel + obj.acceleration[i - 1])
+    force = calcForceWithDrag(force, velocity, obj.cwValue, obj.frontalArea, pos, planet.radius)
     accel = force / obj.mass
     velocity = obj.velocity[i - 1] + dt * 0.5 * (accel + obj.acceleration[i - 1])
 
