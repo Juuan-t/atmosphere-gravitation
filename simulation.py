@@ -2,16 +2,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
+from matplotlib import colormaps
 
 # constants
-steps = 500
-dt = 0.1
+steps = 1000
+dt = 0.01
 time_max = dt * steps
 zeroVector = np.array([0, 0])
 G = 6.674e-11
 tempChangeGradient = 0.0065 #0.01 #kelvin / meter
 molarMass = 0.029 #molar mass of air
-gasConstant = 8.314
+R = 8.314 #Gas constant
 
 #objects
 class thing():
@@ -28,6 +29,13 @@ class thing():
         self.frontalArea = frontalArea
 
 #functions
+def calcAirDensity(distance):
+    airPressure = 101325 * pow(1 - (tempChangeGradient * distance) / 288.15, (9.81 * molarMass) / (R * tempChangeGradient))#barometric formula
+    temperature = 288.15 - distance * tempChangeGradient
+    airDensity = (airPressure * molarMass) / (R * temperature)
+
+    return airDensity
+
 def calcForce(objMass, objPos, planetMass, planetRadius):
     radius = np.sqrt(pow(objPos[0], 2) + pow(objPos[1], 2))
     force = -G * objMass * planetMass * objPos / pow(radius, 3)
@@ -40,9 +48,8 @@ def calcForceWithDrag(forceWithoutDrag, objVelocity, objCwValue, objFrontalArea,
     if(distance < 0 ):
         distance = 0
     
-    airPressure = 101325 * pow(1 - (tempChangeGradient * distance) / 288.15, (9.81 * molarMass) / (gasConstant * tempChangeGradient))#barometric formula
-    temperature = 288.15 - distance * tempChangeGradient
-    airDensity = (airPressure * molarMass) / (gasConstant * temperature)
+    airDensity = calcAirDensity(distance)
+
     drag_x = 0.5 * airDensity * pow(objVelocity[0], 2) * objCwValue * objFrontalArea
     drag_y = 0.5 * airDensity * pow(objVelocity[1], 2) * objCwValue * objFrontalArea
 
@@ -50,7 +57,7 @@ def calcForceWithDrag(forceWithoutDrag, objVelocity, objCwValue, objFrontalArea,
     force_y = forceWithoutDrag[1] - drag_y
 
     forceWithDrag = np.array([force_x, force_y])
-    
+
     return forceWithDrag
 
 #initialisation
@@ -105,9 +112,37 @@ fig, ax = plt.subplots()
 line = ax.plot(x_vals, y_vals)[0]
 line.set_color("orange")
 
-ax.add_patch(Circle([0, 0], planet.radius))
-ax.set_xlim(-obj.position[0][0] - 50000, obj.position[0][0] + 50000)
-ax.set_ylim(-obj.position[0][0] - 50000, obj.position[0][0] + 50000)
+radius = np.sqrt(pow(obj.position[0][0], 2) + pow(obj.position[0][1], 2))
+distanceFromPlanet = radius - planet.radius
+
+#add gradient and planet
+
+densities = []
+distance_density = []
+
+radius = np.sqrt(pow(objStartpos[0], 2) + pow(objStartpos[1], 2))
+
+for i in np.arange(radius, planet.radius, -1000):
+    distance = i - planet.radius
+
+    airDensity = calcAirDensity(distance).real
+
+    print("distance: " , distance , " density: " , airDensity)
+
+    densities.append(airDensity)
+    distance_density.append((i, airDensity))
+
+
+for i in distance_density:
+    planet_patch = ax.add_patch(Circle([0, 0], i[0]))
+    planet_patch.set_alpha(i[1]/max(densities))
+
+planet_patch = ax.add_patch(Circle([0, 0], planet.radius))
+planet_patch.set_facecolor("green")
+
+#more animation
+ax.set_xlim(obj.position[0][0] - 2*distanceFromPlanet, obj.position[0][0] + 2*distanceFromPlanet)
+ax.set_ylim(obj.position[0][1] - 2*distanceFromPlanet, obj.position[0][1] + 2*distanceFromPlanet)
 ax.set_aspect("equal")
 
 def animate(frame):
