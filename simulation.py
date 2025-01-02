@@ -5,14 +5,14 @@ from matplotlib.patches import Circle
 from matplotlib import colormaps
 
 # constants
-steps = 1000
-dt = 0.01
-time_max = dt * steps
 zeroVector = np.array([0, 0])
-G = 6.674e-11
+g = 9.81 #gravitational acceleration
+G = 6.674e-11 #gravitational constant
+R = 8.314 #Gas constant
+avgTemp = 288.15 #sea level standard temperature
 tempChangeGradient = 0.0065 #0.01 #kelvin / meter
 molarMass = 0.029 #molar mass of air
-R = 8.314 #Gas constant
+atmPressure = 101325 #pascal = 1 atm
 
 #objects
 class thing():
@@ -30,8 +30,8 @@ class thing():
 
 #functions
 def calcAirDensity(distance):
-    airPressure = 101325 * pow(1 - (tempChangeGradient * distance) / 288.15, (9.81 * molarMass) / (R * tempChangeGradient))#barometric formula
-    temperature = 288.15 - distance * tempChangeGradient
+    airPressure = atmPressure * pow(1 - (tempChangeGradient * distance) / avgTemp, (g * molarMass) / (R * tempChangeGradient))#barometric formula
+    temperature = avgTemp - distance * tempChangeGradient
     airDensity = (airPressure * molarMass) / (R * temperature)
 
     return airDensity
@@ -61,6 +61,10 @@ def calcForceWithDrag(forceWithoutDrag, objVelocity, objCwValue, objFrontalArea,
     return forceWithDrag
 
 #initialisation
+steps = 1000
+dt = 0.01
+time_max = dt * steps
+
 planetMass = 5.9722e24
 planetRadius = 6378000
 
