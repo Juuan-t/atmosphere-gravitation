@@ -8,7 +8,7 @@ Each individual step is calculated using verlet integration.
 
 <h2>Calculating pressure, temperature and density</h2>
 The air pressure is calcualted using the barometric formula:
-![grafik](https://github.com/user-attachments/assets/d1040eb0-e150-4ba2-8855-f74dcaaabef6)
+![grafik](https://github.com/user-attachments/assets/450de190-96fc-4a31-a88b-8c4b388beab4)
 
 
 The temperature can then be approximated using the following formula:
